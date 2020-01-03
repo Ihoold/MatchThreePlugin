@@ -2,8 +2,6 @@
  * @plugindesc Match three implementation
  * @author Ihoold
  *
- * @param -- Time --
- * 
  * @param Board width
  * @desc Number of tiles in a row.
  * @default 10
@@ -19,6 +17,58 @@
  * @param Tile height
  * @desc Height of a tile, should match the provided tile image.
  * @default 64
+ *
+ * @param Tile types
+ * @desc How many types of tiles will be in game. Maximum 12.
+ * @default 4
+ *
+ * @param Tile #1 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 1
+ *
+ * @param Tile #2 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 2
+ *
+ * @param Tile #3 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 3
+ *
+ * @param Tile #4 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 4
+ *
+ * @param Tile #5 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 5
+ *
+ * @param Tile #6 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 6
+ *
+ * @param Tile #7 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 7
+ *
+ * @param Tile #8 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 8
+ *
+ * @param Tile #9 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 9
+ *
+ * @param Tile #10 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 10
+ *
+ * @param Tile #11 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 11
+ *
+ * @param Tile #12 path
+ * @desc Name of a tile sprite file in the pictures folder (without extension).
+ * @default 12
  * 
  * =================================================================
  * Plugin Commands
@@ -34,18 +84,24 @@
     const boardHeight = Number(parameters['Board height']) || 8;
     const tileWidth = Number(parameters['Tile width']) || 64;
     const tileHeight = Number(parameters['Tile height']) || 64;
+    const tileTypes = Number(parameters['Tile types']) || 4;
+    let tiles_paths = [];
+
+    for (let i=1; i<= tileTypes; i++) {
+        tiles_paths.push(parameters['Tile #' + i.toString() + ' path'] || i.toString());
+    }
+    console.log(tiles_paths);
     
     let ShowMatchThree = {};    
     
-    let Colors = ["red", "blue", "green", "purple", "orange", "white"];
-    let randomFromArray = function(array) {
-        let random_index = Math.floor(Math.random() * array.length);
-        return array[random_index];
-    }
+    let randomIndex = function(array) {
+        return Math.floor(Math.random() * array.length);
+    };
 
     class Tile {
-        constructor(type) {
+        constructor(type, bitmap) {
             this.type = type;
+            this.bitmap = bitmap;
             this.popped = false;
         }
 
@@ -59,6 +115,8 @@
             this.width = width;
             this.height = height;
             this.contents = canvas;
+            this.tiles = [];
+            this.loadTiles();
             this.initRandomBoardState();
         }
 
@@ -67,14 +125,19 @@
             this.fillWithRandomBlocks();
         }
 
+        loadTiles() {
+            for (let i = 0; i < tiles_paths.length; i++) {
+                this.tiles.push(ImageManager.loadPicture(tiles_paths[i]));
+            }
+        }
+
         draw() {
             for(let row = 0; row < this.height; row++) {
                 for(let col = 0; col < this.width; col++) {
                     if (this.state[row][col] != null) {
                         let x = col * tileWidth;
                         let y = row * tileHeight;
-                        let color = this.state[row][col].type;
-                        this.contents.fillRect(x, y, tileWidth, tileHeight, color);
+                        this.contents.bltImage(this.state[row][col].bitmap, 0, 0, tileWidth, tileHeight, x, y, tileWidth, tileHeight);
                     }
                 }
             }
@@ -121,7 +184,8 @@
             for(let row = 0; row < this.height; row++) {
                 for(let col = 0; col < this.width; col++) {
                     if (this.state[row][col] == null) {
-                        this.state[row][col] = new Tile(randomFromArray(Colors));
+                        let randomType = randomIndex(this.tiles);
+                        this.state[row][col] = new Tile(randomType, this.tiles[randomType]);
                     }
                 }
             }
@@ -146,7 +210,7 @@
             let curr_type = "";
             for(var col = 0; col < this.width; col++) {
                 let type = this.state[row][col].type;
-                if (type != curr_type) {
+                if (type !== curr_type) {
                     this.matchFound(curr_type, row, col - curr_strike, row + 1, col);
                     curr_strike = 1;
                     curr_type = type;
@@ -168,7 +232,7 @@
             let curr_type = "";
             for(var row = 0; row < this.height; row++) {
                 let type = this.state[row][col].type;
-                if (type != curr_type) {
+                if (type !== curr_type) {
                     this.matchFound(curr_type, row - curr_strike, col, row, col + 1);
                     curr_strike = 1;
                     curr_type = type;
@@ -250,7 +314,7 @@
         let e_col = Math.floor(ex / tileWidth);
 
         let dist = Math.abs(b_row - e_row) + Math.abs(b_col - e_col);
-        if (dist == 1) {
+        if (dist === 1) {
             this.board.move(b_row, b_col, e_row, e_col);
         }
     };
@@ -289,7 +353,7 @@
         $gameTemp._m3_ypos = null;
     
         Scene_Base.prototype.terminate.call(this);
-    }
+    };
     
     Scene_M3.prototype.update = function() {
         Scene_Base.prototype.update.call(this);
@@ -317,7 +381,7 @@
     ShowMatchThree._pluginCommand = Game_Interpreter.prototype.pluginCommand;
     Game_Interpreter.prototype.pluginCommand = function(command, args) {
         ShowMatchThree._pluginCommand.call(this, command, args);
-        
+
         if (command === 'ShowMatchThree' || command === 'smt') {
             SceneManager.push(Scene_M3);
         }
